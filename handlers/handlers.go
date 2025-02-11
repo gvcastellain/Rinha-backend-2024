@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,19 +22,13 @@ func ClientesHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := strconv.Atoi(urlId)
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	body, err := io.ReadAll(r.Body)
+	var transaction internal.Transaction
 
-	if err != nil {
-		return
-	}
-
-	transaction := internal.Transaction{}
-
-	err = json.Unmarshal(body, &transaction)
+	err = json.NewDecoder(r.Body).Decode(&transaction)
 
 	if err != nil {
 		return
