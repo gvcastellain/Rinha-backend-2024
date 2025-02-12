@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gvcastellain/Rinha-backend-2024/db/sql/querys"
 	"github.com/gvcastellain/Rinha-backend-2024/internal"
 )
 
@@ -17,16 +18,16 @@ func ClientesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlId := paths[2]
+	id := paths[2]
 
-	_, err := strconv.Atoi(urlId)
+	_, err := strconv.Atoi(id)
 
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	var transaction internal.Transaction
+	transaction := internal.Transaction{}
 
 	err = json.NewDecoder(r.Body).Decode(&transaction)
 
@@ -34,6 +35,22 @@ func ClientesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	if transaction.Type == "d" {
+		exceeds, err := querys.ExceedsLimit(transaction, id)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if exceeds {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+	}
+
+	_, err = querys.ExecTransaction(transaction, id)
+
 	w.Write([]byte("a"))
+	w.WriteHeader(http.StatusOK)
 }
