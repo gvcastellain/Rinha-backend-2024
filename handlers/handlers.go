@@ -49,8 +49,18 @@ func ClientesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err = querys.ExecTransaction(transaction, id)
+	transactionResponse, err := querys.ExecTransaction(transaction, id)
 
-	w.Write([]byte("a"))
+	if err != nil {
+		return
+	}
+
+	jsonData, err := json.Marshal(transactionResponse)
+
+	if err != nil {
+		return
+	}
+
+	w.Write([]byte(jsonData))
 	w.WriteHeader(http.StatusOK)
 }

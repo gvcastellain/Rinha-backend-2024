@@ -27,18 +27,16 @@ func ExceedsLimit(transaction internal.Transaction, id string) (bool, error) {
 }
 
 func ExecTransaction(transaction internal.Transaction, id string) (response *internal.TransactionResponse, err error) {
-	db := connection.GetDB()	
+	db := connection.GetDB()
 
-	defer db.Close()
-
-	query := "SELECT current_limit, current_balance from client where id = ?"
+	query := "SELECT client_limit, current_balance from client where id = $1"
 
 	var limit, balance int
-	err = db.QueryRow(query, id).Scan(&limit, balance)
+	_ = db.QueryRow(query, id).Scan(&limit, &balance)
 
 	balance += transaction.Value
 
-	query = "UPDATE client SET current_balance = ? WHERE id = ?"
+	query = "UPDATE client SET current_balance = $1 WHERE id = $2"
 
 	_, err = db.Exec(query, balance, id)
 
@@ -46,7 +44,7 @@ func ExecTransaction(transaction internal.Transaction, id string) (response *int
 		return nil, err
 	}
 
-	query = "INSERT INTO transaction (client_id, description, value, transaction_type) VALUES (?,?,?,?)"
+	query = "INSERT INTO transaction (client_id, description, value, transaction_type) VALUES ($1,$2,$3,$4)"
 
 	_, err = db.Exec(query, id, transaction.Description, transaction.Value, transaction.Type)
 

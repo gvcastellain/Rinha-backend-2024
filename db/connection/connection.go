@@ -3,37 +3,44 @@ package connection
 import (
 	"database/sql"
 	"fmt"
-	"os"
+	"io/ioutil"
+
+	_ "github.com/lib/pq"
 )
 
 var db *sql.DB
 
+const (
+	host     = "localhost"
+	port     = 5432
+	user     = "postgres"
+	password = "gab"
+	dbname   = "rinhadb"
+)
+
 func NewDbConn() {
-	// psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-	// 	os.Getenv("DB_HOST"),
-	// 	os.Getenv("DB_PORT"),
-	// 	os.Getenv("DB_USER"),
-	// 	os.Getenv("DB_PASS"),
-	// 	os.Getenv("DB_NAME"))
+	createDB()
 
-	
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASS"),
-		os.Getenv("DB_NAME"))
-
-	db, err := sql.Open("postgres", psqlconn)
+	var err error
+	db, err = sql.Open("postgres", getPsql(dbname))
 
 	if err != nil {
 		return
 	}
 
-	defer db.Close()
-
 	err = db.Ping()
 
+	if err != nil {
+		return
+	}
+
+	sqlFile := "db\\sql\\scripts\\schemas.sql"
+	sqlContent, err := ioutil.ReadFile(sqlFile)
+	if err != nil {
+		return
+	}
+
+	_, err = db.Exec(string(sqlContent))
 	if err != nil {
 		return
 	}
@@ -41,4 +48,24 @@ func NewDbConn() {
 
 func GetDB() *sql.DB {
 	return db
+}
+
+func createDB() {
+	newDB, err := sql.Open("postgres", getPsql("postgres"))
+	if err != nil {
+		return
+	}
+
+	defer newDB.Close()
+
+	_, err = newDB.Exec(fmt.Sprintf("CREATE DATABASE %s;", dbname))
+	if err != nil {
+		return
+	}
+	newDB.Ping()
+}
+
+func getPsql(dbname string) string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
 }
